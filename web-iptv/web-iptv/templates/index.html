@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Accueil - IPTV Web{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <h1 class="display-4">Bienvenue sur IPTV Web</h1>
+    <p class="lead">Regardez vos chaînes IPTV préférées en toute simplicité</p>
+    
+    {% if not current_user.is_authenticated %}
+    <div class="mt-4">
+        <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg mx-2">Connexion</a>
+        <a href="{{ url_for('register') }}" class="btn btn-outline-primary btn-lg mx-2">Inscription</a>
+    </div>
+    {% else %}
+    <div class="mt-4">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">Accéder à mon tableau de bord</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Gestion des playlists</h5>
+                <p class="card-text">Importez et gérez facilement vos playlists M3U.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Lecture en direct</h5>
+                <p class="card-text">Profitez de vos chaînes en streaming HD.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Interface responsive</h5>
+                <p class="card-text">Accessible sur tous vos appareils.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

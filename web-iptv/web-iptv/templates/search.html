@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Recherche - IPTV Web{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-10">
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" class="form-control" name="q" 
+                                   value="{{ query }}" placeholder="Rechercher des chaînes ou des programmes...">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">Rechercher</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if query %}
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <h3>Chaînes</h3>
+            {% if channels %}
+                <div class="row">
+                    {% for channel in channels %}
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100">
+                            <img src="{{ channel.logo or url_for('static', filename='img/default-channel.png') }}"
+                                 class="card-img-top" alt="{{ channel.name }}">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ channel.name }}</h5>
+                                <p class="card-text">
+                                    <span class="badge bg-primary">{{ channel.category }}</span>
+                                    <span class="badge bg-secondary">{{ channel.quality }}</span>
+                                </p>
+                                <div class="d-grid gap-2">
+                                    <a href="{{ url_for('watch', channel_id=channel.id) }}" 
+                                       class="btn btn-primary">Regarder</a>
+                                    <button class="btn btn-outline-primary btn-sm toggle-favorite"
+                                            data-channel-id="{{ channel.id }}"
+                                            data-favorite="{{ 'true' if channel in current_user.favorites else 'false' }}">
+                                        <i class="fas fa-heart"></i> Favoris
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">Aucune chaîne trouvée pour "{{ query }}"</div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-12">
+            <h3>Programmes</h3>
+            {% if programs %}
+                <div class="row">
+                    {% for program in programs %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    {% if program.thumbnail %}
+                                    <img src="{{ program.thumbnail }}" 
+                                         class="me-3" style="width: 100px; height: 60px; object-fit: cover;"
+                                         alt="{{ program.title }}">
+                                    {% endif %}
+                                    <div>
+                                        <h5 class="card-title mb-1">{{ program.title }}</h5>
+                                        <p class="card-text mb-1">
+                                            <small class="text-muted">
+                                                {{ program.start_time.strftime('%H:%M') }} - 
+                                                {{ program.end_time.strftime('%H:%M') }}
+                                            </small>
+                                        </p>
+                                        <p class="card-text mb-2">
+                                            <small class="text-muted">Sur {{ program.channel.name }}</small>
+                                        </p>
+                                        <div class="btn-group">
+                                            <a href="{{ url_for('watch', channel_id=program.channel.id) }}" 
+                                               class="btn btn-sm btn-primary">Regarder</a>
+                                            <button class="btn btn-sm btn-outline-primary toggle-watchlist"
+                                                    data-program-id="{{ program.id }}">
+                                                <i class="fas fa-clock"></i> Watchlist
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">Aucun programme trouvé pour "{{ query }}"</div>
+            {% endif %}
+        </div>
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <h2>Recherchez vos chaînes et programmes préférés</h2>
+        <p class="text-muted">Utilisez la barre de recherche ci-dessus pour trouver du contenu</p>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Gestion des favoris
+document.querySelectorAll('.toggle-favorite').forEach(button => {
+    button.addEventListener('click', async function() {
+        const channelId = this.dataset.channelId;
+        const isFavorite = this.dataset.favorite === 'true';
+        
+        try {
+            const response = await fetch(`/api/favorites/${channelId}`, {
+                method: isFavorite ? 'DELETE' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                this.dataset.favorite = (!isFavorite).toString();
+                this.classList.toggle('btn-outline-primary');
+                this.classList.toggle('btn-primary');
+                const icon = this.querySelector('i');
+                icon.classList.toggle('text-danger');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Une erreur est survenue. Veuillez réessayer.');
+        }
+    });
+});
+
+// Gestion de la watchlist
+document.querySelectorAll('.toggle-watchlist').forEach(button => {
+    button.addEventListener('click', async function() {
+        const programId = this.dataset.programId;
+        const isInWatchlist = this.classList.contains('btn-primary');
+        
+        try {
+            const response = await fetch(`/api/watchlist/${programId}`, {
+                method: isInWatchlist ? 'DELETE' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                this.classList.toggle('btn-outline-primary');
+                this.classList.toggle('btn-primary');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Une erreur est survenue. Veuillez réessayer.');
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Mon Profil - IPTV Web{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <img src="{{ url_for('static', filename=current_user.profile_image or 'img/default-avatar.png') }}"
+                     class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;"
+                     alt="Photo de profil">
+                <h5 class="card-title">{{ current_user.username }}</h5>
+                <p class="text-muted">
+                    Membre depuis {{ current_user.created_at.strftime('%d/%m/%Y') }}
+                </p>
+                <p>
+                    <span class="badge {% if current_user.is_premium %}bg-primary{% else %}bg-secondary{% endif %}">
+                        {{ 'Premium' if current_user.is_premium else 'Basic' }}
+                    </span>
+                </p>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Statistiques</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <div>Playlists</div>
+                    <div>{{ current_user.playlists.count() }}</div>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <div>Chaînes favorites</div>
+                    <div>{{ current_user.favorites.count() }}</div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <div>Dernière connexion</div>
+                    <div>{{ current_user.last_seen.strftime('%d/%m/%Y') }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Modifier mon profil</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email"
+                               value="{{ current_user.email }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="profile_image" class="form-label">Photo de profil</label>
+                        <input type="file" class="form-control" id="profile_image" name="profile_image"
+                               accept="image/*">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label">Mot de passe actuel</label>
+                        <input type="password" class="form-control" id="current_password" name="current_password">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">Nouveau mot de passe</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">Confirmer le nouveau mot de passe</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Préférences</h5>
+            </div>
+            <div class="card-body">
+                <form id="preferencesForm">
+                    <div class="mb-3">
+                        <label class="form-label">Qualité de lecture par défaut</label>
+                        <select class="form-select" name="default_quality">
+                            <option value="auto">Auto</option>
+                            <option value="low">Basse</option>
+                            <option value="medium">Moyenne</option>
+                            <option value="high">Haute</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notifications</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="email_notifications" checked>
+                            <label class="form-check-label" for="email_notifications">
+                                Recevoir des notifications par email
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="program_reminders" checked>
+                            <label class="form-check-label" for="program_reminders">
+                                Rappels des programmes
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Contrôle parental</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="parental_control">
+                            <label class="form-check-label" for="parental_control">
+                                Activer le contrôle parental
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Enregistrer les préférences</button>
+                </form>
+            </div>
+        </div>
+
+        {% if current_user.is_premium %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Abonnement Premium</h5>
+            </div>
+            <div class="card-body">
+                <p>Votre abonnement Premium est actif jusqu'au {{ current_user.subscriptions[0].end_date.strftime('%d/%m/%Y') }}</p>
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="auto_renew" 
+                           {% if current_user.subscriptions[0].auto_renew %}checked{% endif %}>
+                    <label class="form-check-label" for="auto_renew">
+                        Renouvellement automatique
+                    </label>
+                </div>
+                <button class="btn btn-danger" id="cancelSubscription">Annuler l'abonnement</button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('preferencesForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    try {
+        const response = await fetch('/api/preferences', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            alert('Préférences enregistrées avec succès');
+        } else {
+            throw new Error('Erreur lors de l\'enregistrement des préférences');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Une erreur est survenue. Veuillez réessayer.');
+    }
+});
+
+{% if current_user.is_premium %}
+document.getElementById('cancelSubscription').addEventListener('click', async function() {
+    if (confirm('Êtes-vous sûr de vouloir annuler votre abonnement Premium ?')) {
+        try {
+            const response = await fetch('/api/subscription/cancel', {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                alert('Votre abonnement a été annulé');
+                location.reload();
+            } else {
+                throw new Error('Erreur lors de l\'annulation');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Une erreur est survenue. Veuillez réessayer.');
+        }
+    }
+});
+
+document.getElementById('auto_renew').addEventListener('change', async function() {
+    try {
+        const response = await fetch('/api/subscription/auto-renew', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                auto_renew: this.checked
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Erreur lors de la mise à jour');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Une erreur est survenue. Veuillez réessayer.');
+        this.checked = !this.checked;
+    }
+});
+{% endif %}
+</script>
+{% endblock %}
