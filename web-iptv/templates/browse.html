@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Parcourir - IPTV Web{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <select name="category" class="form-select">
+                            <option value="">Toutes les catégories</option>
+                            <option value="sports" {% if category == 'sports' %}selected{% endif %}>Sports</option>
+                            <option value="movies" {% if category == 'movies' %}selected{% endif %}>Films</option>
+                            <option value="news" {% if category == 'news' %}selected{% endif %}>Actualités</option>
+                            <option value="entertainment" {% if category == 'entertainment' %}selected{% endif %}>Divertissement</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="language" class="form-select">
+                            <option value="">Toutes les langues</option>
+                            <option value="fr" {% if language == 'fr' %}selected{% endif %}>Français</option>
+                            <option value="en" {% if language == 'en' %}selected{% endif %}>Anglais</option>
+                            <option value="es" {% if language == 'es' %}selected{% endif %}>Espagnol</option>
+                            <option value="de" {% if language == 'de' %}selected{% endif %}>Allemand</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="quality" class="form-select">
+                            <option value="">Toutes les qualités</option>
+                            <option value="SD" {% if quality == 'SD' %}selected{% endif %}>SD</option>
+                            <option value="HD" {% if quality == 'HD' %}selected{% endif %}>HD</option>
+                            <option value="FHD" {% if quality == 'FHD' %}selected{% endif %}>Full HD</option>
+                            <option value="4K" {% if quality == '4K' %}selected{% endif %}>4K</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100">Filtrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% for channel in channels.items %}
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <img src="{{ channel.logo or url_for('static', filename='img/default-channel.png') }}" 
+                 class="card-img-top" alt="{{ channel.name }}">
+            <div class="card-body">
+                <h5 class="card-title">{{ channel.name }}</h5>
+                <p class="card-text">
+                    <span class="badge bg-primary">{{ channel.category }}</span>
+                    <span class="badge bg-secondary">{{ channel.quality }}</span>
+                </p>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('watch', channel_id=channel.id) }}" class="btn btn-primary">Regarder</a>
+                    <button class="btn btn-outline-primary btn-sm toggle-favorite" 
+                            data-channel-id="{{ channel.id }}"
+                            data-favorite="{{ 'true' if channel in current_user.favorites else 'false' }}">
+                        <i class="fas fa-heart"></i> Favoris
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <nav aria-label="Navigation des pages">
+            <ul class="pagination justify-content-center">
+                {% if channels.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('browse', page=channels.prev_num, category=category, language=language, quality=quality) }}">Précédent</a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in channels.iter_pages(left_edge=2, left_current=2, right_current=3, right_edge=2) %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == channels.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('browse', page=page_num, category=category, language=language, quality=quality) }}">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if channels.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('browse', page=channels.next_num, category=category, language=language, quality=quality) }}">Suivant</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.toggle-favorite').forEach(button => {
+    button.addEventListener('click', function() {
+        const channelId = this.dataset.channelId;
+        const isFavorite = this.dataset.favorite === 'true';
+        
+        fetch(`/api/favorites/${channelId}`, {
+            method: isFavorite ? 'DELETE' : 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+                this.dataset.favorite = (!isFavorite).toString();
+                this.classList.toggle('btn-outline-primary');
+                this.classList.toggle('btn-primary');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
