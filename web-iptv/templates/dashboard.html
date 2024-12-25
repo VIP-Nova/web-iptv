@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord - IPTV Web{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h3>Ajouter une playlist</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_playlist') }}">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <input type="text" class="form-control" name="name" placeholder="Nom de la playlist" required>
+                        </div>
+                        <div class="col-md-5">
+                            <input type="url" class="form-control" name="url" placeholder="URL de la playlist M3U" required>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">Ajouter</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% for playlist in playlists %}
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h4>{{ playlist.name }}</h4>
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ playlist.channels|length }} chaînes</p>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" onclick="loadChannels({{ playlist.id }})">Voir les chaînes</button>
+                    <button class="btn btn-danger" onclick="deletePlaylist({{ playlist.id }})">Supprimer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="modal fade" id="channelsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chaînes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="channelsList" class="row g-3">
+                    <!-- Les chaînes seront chargées ici dynamiquement -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function loadChannels(playlistId) {
+    fetch(`/api/playlist/${playlistId}/channels`)
+        .then(response => response.json())
+        .then(channels => {
+            const channelsList = document.getElementById('channelsList');
+            channelsList.innerHTML = '';
+            
+            channels.forEach(channel => {
+                const channelCard = `
+                    <div class="col-md-4">
+                        <div class="card">
+                            <img src="${channel.logo || '/static/img/default-channel.png'}" class="card-img-top" alt="${channel.name}">
+                            <div class="card-body">
+                                <h5 class="card-title">${channel.name}</h5>
+                                <a href="/watch/${channel.id}" class="btn btn-primary">Regarder</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                channelsList.innerHTML += channelCard;
+            });
+            
+            new bootstrap.Modal(document.getElementById('channelsModal')).show();
+        });
+}
+
+function deletePlaylist(playlistId) {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette playlist ?')) {
+        fetch(`/api/playlist/${playlistId}`, {
+            method: 'DELETE'
+        }).then(() => {
+            location.reload();
+        });
+    }
+}
+</script>
+{% endblock %}
